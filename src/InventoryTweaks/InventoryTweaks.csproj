@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>InventoryTweaks</AssemblyName>
+    <RootNamespace>InventoryTweaks</RootNamespace>
+    <TargetFramework>net481</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- The mod is built in-place inside the game install. Override GameRoot on the
+       command line to build against a copy elsewhere. -->
+  <PropertyGroup>
+    <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\</GameRoot>
+    <GameManaged>$(GameRoot)7DaysToDie_Data\Managed\</GameManaged>
+    <BepInExCore>$(GameRoot)BepInEx\core\</BepInExCore>
+  </PropertyGroup>
+
+  <!-- No .NET Framework targeting pack is installed (and none is wanted: the mod runs
+       on the game's own Mono BCL). Compile against the BCL shipped in Managed\. -->
+  <PropertyGroup>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <FrameworkPathOverride>$(GameManaged)</FrameworkPathOverride>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="mscorlib" HintPath="$(GameManaged)mscorlib.dll" Private="false" />
+    <Reference Include="System" HintPath="$(GameManaged)System.dll" Private="false" />
+    <Reference Include="System.Core" HintPath="$(GameManaged)System.Core.dll" Private="false" />
+    <Reference Include="netstandard" HintPath="$(GameManaged)netstandard.dll" Private="false" />
+    <Reference Include="Assembly-CSharp" HintPath="$(GameManaged)Assembly-CSharp.dll" Private="false" />
+    <Reference Include="LogLibrary" HintPath="$(GameManaged)LogLibrary.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManaged)UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BepInExCore)0Harmony.dll" Private="false" />
+    <!-- Undead Legacy is a hard requirement: this mod patches UL's own inventory UI classes, so it
+         compiles against the installed UL DLL. UL is already loaded (BepInEx chainloader) by the
+         time any IModApi.InitMod runs, so the reference resolves at runtime by simple name. -->
+    <Reference Include="UndeadLegacy" HintPath="$(GameRoot)Mods\UndeadLegacy\UndeadLegacy.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- Stage a ready-to-copy mod folder next to the build output. -->
+  <Target Name="StageMod" AfterTargets="Build">
+    <PropertyGroup>
+      <StageDir>$(MSBuildThisFileDirectory)..\..\dist\InventoryTweaks\</StageDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(StageDir)" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)ModInfo.xml" DestinationFolder="$(StageDir)" />
+    <Message Importance="high" Text="Staged mod folder: $(StageDir)" />
+  </Target>
+
+  <!-- Zip the staged folder for a GitHub Release. Opt-in - `dotnet build -c Release -t:Package`.
+       The zip lands in release\, which the whitelist .gitignore already ignores, so it never
+       becomes a repo file. The version comes from ModInfo.xml so there is one source of truth. -->
+  <Target Name="Package" DependsOnTargets="Build">
+    <PropertyGroup>
+      <DistDir>$(MSBuildThisFileDirectory)..\..\dist\</DistDir>
+      <ReleaseDir>$(MSBuildThisFileDirectory)..\..\release\</ReleaseDir>
+      <PackageDate>$([System.DateTime]::Now.ToString('yyyyMMdd'))</PackageDate>
+    </PropertyGroup>
+    <XmlPeek XmlInputPath="$(MSBuildThisFileDirectory)ModInfo.xml" Query="/xml/Version/@value">
+      <Output TaskParameter="Result" PropertyName="ModVersion" />
+    </XmlPeek>
+    <PropertyGroup>
+      <PackageFile>$(ReleaseDir)$(AssemblyName)-$(ModVersion)-$(PackageDate).zip</PackageFile>
+    </PropertyGroup>
+    <MakeDir Directories="$(ReleaseDir)" />
+    <ZipDirectory SourceDirectory="$(DistDir)" DestinationFile="$(PackageFile)" Overwrite="true" />
+    <Message Importance="high" Text="Release zip: $(PackageFile)" />
+  </Target>
+
+</Project>

@@ -1,0 +1,17 @@
+# Whitelist: ignore everything, then re-include only what this repo ships.
+*
+
+!/.gitattributes
+!/.gitignore
+!/LICENSE
+!/README.md
+
+!/src/
+!/src/**
+
+# Build output that lives inside src/.
+src/**/bin/
+src/**/obj/
+
+# dist/ is the staged mod folder and release/ holds the packaged zip. Both are build
+# output now: the zip is published as a GitHub Release rather than committed here.
