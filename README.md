@@ -199,7 +199,7 @@ That restages `dist/InventoryTweaks/`, ready to copy into `Mods/`. To also build
 dotnet build src/InventoryTweaks/InventoryTweaks.csproj -c Release -t:Package
 ```
 
-That writes `release/InventoryTweaks-<version>-<date>.zip`, taking the version from `ModInfo.xml`.
+That writes `release/InventoryTweaks-v<version>-<date>.zip`, taking the version from `ModInfo.xml`.
 Neither `dist/` nor `release/` is tracked — the zip is published as a GitHub Release instead.
 
 ## License
