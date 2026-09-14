@@ -26,6 +26,21 @@ namespace InventoryTweaks
 		/// <summary>While a sort is locked, re-sort every time the inventory is opened.</summary>
 		internal static bool AutoSort = true;
 
+		/// <summary>
+		/// Keep never-seen items at the front of the backpack: after every sort and on every real
+		/// open. Toggled by the fifth button in UL's sort row or <c>it newfirst</c>. Persisted.
+		/// </summary>
+		internal static bool NewFirst = false;
+
+		/// <summary>
+		/// With <see cref="NewFirst"/>: changed stacks (the +/- ones) form a second tier behind the
+		/// new ones. Toggled by right-clicking the same button or <c>it changedfirst</c>. Persisted.
+		/// </summary>
+		internal static bool ChangedFirst = false;
+
+		/// <summary>Pressing the key of the page already showing (B for character, and so on) closes the inventory.</summary>
+		internal static bool ToggleClose = true;
+
 		/// <summary>Frame items that arrived or changed count since the player last looked at them.</summary>
 		internal static bool Highlight = true;
 

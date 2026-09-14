@@ -16,12 +16,18 @@ namespace InventoryTweaks
 
 		private static float lastCloseTime = -1000f;
 
+		internal static float SecondsSinceClose()
+		{
+			return Time.unscaledTime - lastCloseTime;
+		}
+
 		/// <summary>Postfix on <c>XUiC_ULM_BackpackWindow.OnOpen()</c>. Runs after the grid's cells are filled.</summary>
 		internal static void AfterOpen(XUiC_ULM_BackpackWindow __instance)
 		{
 			bool realOpen = Time.unscaledTime - lastCloseTime > TabSwitchSeconds;
 			NewItemTracker.OnWindowOpened(__instance, realOpen);
-			SortLock.OnWindowOpened(__instance, realOpen);
+			bool sorted = SortLock.OnWindowOpened(__instance, realOpen);
+			NewFirst.OnWindowOpened(__instance, realOpen, sorted);
 		}
 
 		/// <summary>Postfix on <c>XUiC_ULM_BackpackWindow.OnClose()</c>.</summary>

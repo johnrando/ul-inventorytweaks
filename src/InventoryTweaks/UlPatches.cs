@@ -34,8 +34,20 @@ namespace InventoryTweaks
 
 		internal static string MarkerStatus = Patches.NotRunYet;
 
+		internal static string ToggleCloseStatus = Patches.NotRunYet;
+
+		internal static string NewFirstButtonStatus = Patches.NotRunYet;
+
+		internal static string NewFirstSortStatus = Patches.NotRunYet;
+
+		internal static string NewFirstStandardSortStatus = Patches.NotRunYet;
+
 		internal static void MarkAllSkipped(string _status)
 		{
+			NewFirstButtonStatus = _status;
+			NewFirstSortStatus = _status;
+			NewFirstStandardSortStatus = _status;
+			NewFirst.ButtonStatus = _status;
 			SortScrollStatus = _status;
 			StandardSortScrollStatus = _status;
 			SortLockStatus = _status;
@@ -45,6 +57,7 @@ namespace InventoryTweaks
 			BagChangeStatus = _status;
 			HighlightStatus = _status;
 			MarkerStatus = _status;
+			ToggleCloseStatus = _status;
 		}
 
 		internal static void Install(Harmony _harmony)
@@ -88,6 +101,33 @@ namespace InventoryTweaks
 			MarkerStatus = Postfix(_harmony, typeof(XUiC_ULM_ItemStack), "GetBindingValueInternal",
 				typeof(NewItemHighlight), nameof(NewItemHighlight.AfterBinding),
 				"changed stack counts carry +/- markers");
+
+			// Feature 4: a page's key closes the inventory again. Vanilla does this; UL's own prefix
+			// on the same method drops it. Harmony runs every prefix even after one skips the
+			// original, so the prefix only notes whether the page was already showing and the
+			// postfix closes the inventory after UL's prefix has run (a no-op on an open page).
+			ToggleCloseStatus = Patch(_harmony, typeof(XUiC_WindowSelector), "openSelectorAndWindow",
+				typeof(KeyToggleClose), nameof(KeyToggleClose.BeforeOpen),
+				"pressing a page's key again closes the inventory", _prefix: true);
+			if (!ToggleCloseStatus.StartsWith("NOT APPLIED"))
+			{
+				ToggleCloseStatus = Postfix(_harmony, typeof(XUiC_WindowSelector), "openSelectorAndWindow",
+					typeof(KeyToggleClose), nameof(KeyToggleClose.AfterOpen),
+					"pressing a page's key again closes the inventory");
+			}
+
+			// Feature 5: the new-items-first button, added to the window XML before XUi parses it
+			// (a Config XML patch would run before UL's, by folder order), and the order applied
+			// after every sort. Runs on the same targets as feature 1; Harmony stacks the postfixes.
+			NewFirstButtonStatus = Patch(_harmony, typeof(XUiFromXml), "loadWindows",
+				typeof(NewFirst), nameof(NewFirst.BeforeLoadWindows),
+				"the new-items-first button is added to the backpack window", _prefix: true);
+			NewFirstSortStatus = Postfix(_harmony, typeof(ULM_StackSorter), "OnBtnSort",
+				typeof(NewFirst), nameof(NewFirst.AfterSort),
+				"new items move to the front after a sort");
+			NewFirstStandardSortStatus = Postfix(_harmony, typeof(XUiC_ULM_BackpackWindow), "BtnSort_OnPress",
+				typeof(NewFirst), nameof(NewFirst.AfterStandardSort),
+				"new items move to the front after the standard-controls sort");
 		}
 
 		/// <summary>
@@ -96,6 +136,16 @@ namespace InventoryTweaks
 		/// </summary>
 		private static string Postfix(Harmony _harmony, Type _targetType, string _targetName,
 			Type _patchType, string _patchName, string _effect)
+		{
+			return Patch(_harmony, _targetType, _targetName, _patchType, _patchName, _effect, _prefix: false);
+		}
+
+		/// <summary>
+		/// One patch, prefix or postfix. A prefix takes its priority from the patch method's own
+		/// <c>[HarmonyPriority]</c> attribute, which <c>HarmonyMethod</c> reads.
+		/// </summary>
+		private static string Patch(Harmony _harmony, Type _targetType, string _targetName,
+			Type _patchType, string _patchName, string _effect, bool _prefix)
 		{
 			string site = _targetType.Name + "." + _targetName;
 			MethodInfo target = AccessTools.DeclaredMethod(_targetType, _targetName);
@@ -116,7 +166,15 @@ namespace InventoryTweaks
 
 			try
 			{
-				_harmony.Patch(target, postfix: new HarmonyMethod(patch));
+				HarmonyMethod method = new HarmonyMethod(patch);
+				if (_prefix)
+				{
+					_harmony.Patch(target, prefix: method);
+				}
+				else
+				{
+					_harmony.Patch(target, postfix: method);
+				}
 			}
 			catch (Exception e)
 			{
@@ -125,7 +183,7 @@ namespace InventoryTweaks
 			}
 
 			Log.Out(Patches.LogPrefix + "Patched " + site + ": " + _effect + ".");
-			return "applied - postfix on " + site;
+			return "applied - " + (_prefix ? "prefix" : "postfix") + " on " + site;
 		}
 	}
 

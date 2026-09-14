@@ -13,7 +13,7 @@ namespace InventoryTweaks
 	/// </summary>
 	internal static class SortLock
 	{
-		private static readonly Color32 LockedIconColor = new Color32(222, 206, 163, byte.MaxValue);
+		internal static readonly Color32 LockedIconColor = new Color32(222, 206, 163, byte.MaxValue);
 
 		/// <summary>Each icon sprite's colour before we touched it, so unlocking restores it exactly.</summary>
 		private static readonly Dictionary<XUiV_Sprite, Color> originalIconColors = new Dictionary<XUiV_Sprite, Color>();
@@ -29,6 +29,7 @@ namespace InventoryTweaks
 					button.OnRightPress += OnRightPress;
 				}
 			}
+			NewFirst.AfterInit(__instance);
 			ApplyIndicator(__instance);
 		}
 
@@ -90,28 +91,46 @@ namespace InventoryTweaks
 		/// <summary>
 		/// Sort on open, when it will not get in the way: a real open rather than a tab switch,
 		/// nothing on the cursor, and the buttons not disabled by the shuffled-backpack debuff.
+		/// Returns whether a sort ran, so feature 5 knows the bag is freshly ordered.
 		/// </summary>
-		internal static void OnWindowOpened(XUiC_ULM_BackpackWindow _window, bool _realOpen)
+		internal static bool OnWindowOpened(XUiC_ULM_BackpackWindow _window, bool _realOpen)
 		{
 			ApplyIndicator(_window);
-			if (!_realOpen || !Settings.Enabled || !Settings.AutoSort || Settings.LockedSort.Length == 0)
+			if (!Settings.Enabled || !Settings.AutoSort || Settings.LockedSort.Length == 0)
 			{
-				return;
+				return false;
+			}
+			if (!_realOpen)
+			{
+				Trace("skipped: treated as a tab switch (closed " + WindowLifecycle.SecondsSinceClose().ToString("0.00") + "s ago)");
+				return false;
 			}
 			XUi xui = _window.xui;
 			if (xui?.dragAndDrop != null && !xui.dragAndDrop.CurrentStack.IsEmpty())
 			{
-				return;
+				Trace("skipped: an item is on the cursor");
+				return false;
 			}
 			XUiC_ULM_BackpackGrid grid = BackpackAccess.Grid(_window);
 			if (grid != null && grid.isShuffledBackpack)
 			{
-				return;
+				Trace("skipped: shuffled backpack debuff");
+				return false;
 			}
 			if (RunLockedSort(_window))
 			{
 				Counters.AutoSorts++;
+				Trace("sorted by " + Settings.LockedSort);
+				return true;
 			}
+			Trace("could not sort: sorter " + (BackpackAccess.Sorter(_window) == null ? "missing" : "ok")
+				+ ", button " + (_window.GetChildById(SortModes.ToButtonId(Settings.LockedSort)) == null ? "missing" : "ok"));
+			return false;
+		}
+
+		private static void Trace(string _what)
+		{
+			Log.Out(Patches.LogPrefix + "Sort on open: " + _what + ".");
 		}
 
 		/// <summary>Selected sprite plus gold icon on the locked button, defaults on the others.</summary>
@@ -134,12 +153,16 @@ namespace InventoryTweaks
 				{
 					view.Selected = locked;
 				}
-				TintIcon(button, locked);
+				TintIcon(button, locked, LockedIconColor);
 			}
+			NewFirst.ApplyIndicator(_window);
 		}
 
-		/// <summary>The ulmSort control is a rect holding the button and, beside it, the icon sprite.</summary>
-		private static void TintIcon(XUiController _button, bool _locked)
+		/// <summary>
+		/// The ulmSort control is a rect holding the button and, beside it, the icon sprite. Tints
+		/// the icon <paramref name="_color"/> when <paramref name="_on"/>, else restores its original.
+		/// </summary>
+		internal static void TintIcon(XUiController _button, bool _on, Color32 _color)
 		{
 			XUiController parent = _button.Parent;
 			if (parent == null)
@@ -158,7 +181,7 @@ namespace InventoryTweaks
 					original = icon.Color;
 					originalIconColors[icon] = original;
 				}
-				icon.Color = _locked ? (Color)LockedIconColor : original;
+				icon.Color = _on ? (Color)_color : original;
 			}
 		}
 	}

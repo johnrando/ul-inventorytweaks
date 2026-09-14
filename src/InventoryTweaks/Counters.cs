@@ -12,6 +12,11 @@ namespace InventoryTweaks
 		/// <summary>Sorts run automatically because a sort order is locked.</summary>
 		internal static int AutoSorts;
 
+		/// <summary>Times new items were moved to the front of the backpack.</summary>
+		internal static int NewFirstSorts;
+
+		internal static int KeyCloses;
+
 		/// <summary>Backpack slots flagged as newly arrived.</summary>
 		internal static int ItemsFlagged;
 
@@ -25,6 +30,8 @@ namespace InventoryTweaks
 		{
 			SortsScrolled = 0;
 			AutoSorts = 0;
+			NewFirstSorts = 0;
+			KeyCloses = 0;
 			ItemsFlagged = 0;
 			ItemsSeen = 0;
 			BagChanges = 0;

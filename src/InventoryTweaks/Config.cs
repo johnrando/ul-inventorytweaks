@@ -122,7 +122,7 @@ namespace InventoryTweaks
 			text.AppendLine("# InventoryTweaks settings.");
 			text.AppendLine("#");
 			text.AppendLine("# Read once when the game starts and rewritten whenever an 'it' command (or a");
-			text.AppendLine("# right-click on a sort button) changes something, so edit this with the game");
+			text.AppendLine("# click on a sort-row button) changes something, so edit this with the game");
 			text.AppendLine("# closed. Every line names the command that sets it; anything after a '#' is a");
 			text.AppendLine("# comment, and a line that will not parse is ignored rather than fatal.");
 			text.AppendLine();
@@ -132,6 +132,9 @@ namespace InventoryTweaks
 			Setting(text, "lock", Settings.LockedSort.Length == 0 ? "none" : Settings.LockedSort,
 				"it lock {none|weight|price|group|name} - or right-click a sort button");
 			Setting(text, "autosort", OnOff(Settings.AutoSort), "it autosort");
+			Setting(text, "newfirst", OnOff(Settings.NewFirst), "it newfirst - or left-click the ! button by the sort buttons");
+			Setting(text, "changedfirst", OnOff(Settings.ChangedFirst), "it changedfirst - or right-click the ! button");
+			Setting(text, "toggle", OnOff(Settings.ToggleClose), "it toggle");
 			Setting(text, "highlight", OnOff(Settings.Highlight), "it highlight");
 			Setting(text, "color", Color(Settings.HighlightColor), "it color {r,g,b,a}");
 			Setting(text, "markers", OnOff(Settings.Markers), "it markers");
@@ -195,6 +198,12 @@ namespace InventoryTweaks
 				return TryLock(_value);
 			case "autosort":
 				return TryBool(_value, ref Settings.AutoSort);
+			case "newfirst":
+				return TryBool(_value, ref Settings.NewFirst);
+			case "changedfirst":
+				return TryBool(_value, ref Settings.ChangedFirst);
+			case "toggle":
+				return TryBool(_value, ref Settings.ToggleClose);
 			case "highlight":
 				return TryBool(_value, ref Settings.Highlight);
 			case "color":

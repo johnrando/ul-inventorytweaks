@@ -4,6 +4,6 @@
 	<DisplayName value="InventoryTweaks" />
 	<Description value="Inventory quality-of-life for Undead Legacy: sorting scrolls the backpack to the top, right-click a sort button to lock that order and re-sort every time the inventory opens, and items you have not yet looked at stay highlighted until you scroll them into view. Requires Undead Legacy." />
 	<Author value="John Rando" />
-	<Version value="0.0.0.1" />
+	<Version value="0.0.0.2" />
 	<Website value="" />
 </xml>

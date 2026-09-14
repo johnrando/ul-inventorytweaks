@@ -1,6 +1,6 @@
 # InventoryTweaks
 
-A 7 Days To Die mod for **Undead Legacy**. Three small quality-of-life fixes for UL's backpack:
+A 7 Days To Die mod for **Undead Legacy**. Five small quality-of-life fixes for UL's backpack:
 
 - **Sorting scrolls to the top.** Clicking a sort button re-sorts and jumps the list back to the
   first page, so the sorted result is actually in view. Also in loot containers and vehicle storage.
@@ -11,6 +11,12 @@ A 7 Days To Die mod for **Undead Legacy**. Three small quality-of-life fixes for
   your backpack, or any stack whose count changes, gets a coloured frame that goes away when you
   hover the cell or close the inventory. Stackables also show how much the count moved: `+ 47`,
   `++ 47`, `+++ 47` (or `-`, `--`, `---`) in front of the number.
+- **New items first.** A fifth button (`!`) beside UL's sort buttons. Left-click it and anything
+  you have never had before is kept at the front of the bag: after every sort, on every real
+  open, and the moment you switch it on. Right-click it and stacks you already had whose count
+  changed follow as a second tier. The rest keeps its sorted order; locked slots stay put.
+- **The key that opened a page closes it.** Press B for the character page and B again to close
+  the inventory, the way the unmodded game does. UL leaves only Tab and Escape to close.
 
 ## Installing
 
@@ -38,6 +44,9 @@ InventoryTweaks is ON
   it containers             : [ >on< | off ]                    - ...and loot / vehicle windows too
   it lock {mode}            : [ >none< | weight | price | group | name ] - locked sort - or right-click a sort button
   it autosort               : [ >on< | off ]                    - re-sort on open while locked
+  it newfirst               : [ on | >off< ]                    - new items first - or left-click the ! button
+  it changedfirst           : [ on | >off< ]                    - ...then changed items - or right-click it
+  it toggle                 : [ >on< | off ]                    - a page's key closes the inventory again
   it highlight              : [ >on< | off ]                    - frame new or changed items until hovered
   it color {r,g,b,a}        : 255,200,60,255
   it markers                : [ >on< | off ]                    - +/- before a changed stack count
@@ -62,6 +71,35 @@ exactly as a left-click would. It runs only when it cannot get in your way:
   character and other tabs;
 - when nothing is on your cursor;
 - when the sort buttons are not greyed out by UL's *Shuffled Backpack* debuff.
+
+**New items first.** The `!` button is added to UL's sort row in memory, just before the game
+parses the window XML — a plain XML patch could not do it, because mod patches apply in folder
+order and `InventoryTweaks` sorts before `UndeadLegacy`. Left-click toggles *new first*; the
+button lights up in the same gold as a locked sort. Right-click toggles the *changed* tier on
+top (switching new-first on if it was off); the icon then takes the highlight colour. Both are
+saved like the lock.
+
+While on, after any UL sort of the backpack — a sort button, the locked sort on open, or the
+standard-controls sort — the stacks the new-item highlight knows you never had before (framed,
+no `+`/`-` marker) are pulled to the front of the movable slots, then, with the changed tier on,
+the stacks you already owned whose count changed (the `+`/`-` ones), then everything else. Each
+tier keeps the order UL just sorted it into. On a real open with no locked sort, and at the
+moment you switch the button on, there is no sort order to follow, so within each tier the most
+recently changed stack comes first and the rest of the bag stays as it was.
+
+Slots locked with the slot-lock key are never moved, exactly as UL's own sorter leaves them; the
+item open in the modify window stays selected. Hovering a highlighted item acknowledges it, so
+it drops back into normal order on the next sort. The same guards as the locked sort apply on
+open: not on a tab switch, never while an item is on the cursor, never under the *Shuffled
+Backpack* debuff.
+
+**Page key closes.** Vanilla's window selector closes everything when the page a key asks for is
+the one already showing. UL replaces that method with a Harmony prefix of its own and drops the
+toggle. Harmony runs every prefix even after one skips the original, so the mod cannot simply
+close from a prefix - UL's would reopen the page straight after. Instead a prefix notes whether
+the page was already showing, UL's prefix runs as usual (opening a page that is open does
+nothing), and a postfix then closes the inventory; every other press is left untouched. It
+applies to every page key (B, N, O, M and so on), not Tab, which UL handles separately.
 
 **New-item highlight.** The bag only reports "something changed", so the mod keeps a fingerprint
 of every slot (item, quality, seed) plus the count you last acknowledged, and diffs the bag on
@@ -90,13 +128,17 @@ Hover, selection, drag and UL's search overlay all draw over the frame unchanged
 | ...in loot / vehicle windows | on |
 | locked sort | none |
 | re-sort on open while locked | on |
+| new items first | off |
+| ...then changed items | off |
+| page key closes the inventory | on |
 | new-item highlight | on |
 | highlight colour | 255,200,60,255 |
 | count markers | on |
 
 ## Settings file
 
-Every setting survives a restart. A change made with `it`, or by right-clicking a sort button, is
+Every setting survives a restart. A change made with `it`, by right-clicking a sort button, or by
+clicking the `!` button, is
 written straight out to:
 
 ```
@@ -115,6 +157,9 @@ scroll        = on               # it scroll
 containers    = on               # it containers
 lock          = none             # it lock {none|weight|price|group|name} - or right-click a sort button
 autosort      = on               # it autosort
+newfirst      = off              # it newfirst - or left-click the ! button by the sort buttons
+changedfirst  = off              # it changedfirst - or right-click the ! button
+toggle        = on               # it toggle
 highlight     = on               # it highlight
 color         = 255,200,60,255   # it color {r,g,b,a}
 markers       = on               # it markers

@@ -49,6 +49,23 @@ namespace InventoryTweaks
 				Output("Sort on open while locked " + OnOff(Settings.AutoSort) + ".");
 				return;
 
+			case "newfirst":
+				ToggleNewFirst(_changed: false);
+				Output("New items first " + OnOff(Settings.NewFirst) + ".");
+				return;
+
+			case "changedfirst":
+				ToggleNewFirst(_changed: true);
+				Output("Changed items behind new ones " + OnOff(Settings.ChangedFirst)
+					+ (Settings.ChangedFirst && !Settings.NewFirst ? " (takes effect once newfirst is on)." : "."));
+				return;
+
+			case "toggle":
+				Settings.ToggleClose = !Settings.ToggleClose;
+				Config.Save();
+				Output("Page key closes the inventory " + OnOff(Settings.ToggleClose) + ".");
+				return;
+
 			case "highlight":
 				Settings.Highlight = !Settings.Highlight;
 				Config.Save();
@@ -87,7 +104,7 @@ namespace InventoryTweaks
 
 			default:
 				Output("Unknown option '" + _params[0]
-					+ "'. Try: it [on|off|scroll|containers|lock|autosort|highlight|color|markers|clear|info|reset]");
+					+ "'. Try: it [on|off|scroll|containers|lock|autosort|newfirst|changedfirst|toggle|highlight|color|markers|clear|info|reset]");
 				return;
 			}
 		}
@@ -100,6 +117,9 @@ namespace InventoryTweaks
 			Switch("it containers", OnOffChoices(Settings.ScrollContainers), "...and loot / vehicle windows too");
 			Switch("it lock {mode}", LockChoices(), "locked sort - or right-click a sort button");
 			Switch("it autosort", OnOffChoices(Settings.AutoSort), "re-sort on open while locked");
+			Switch("it newfirst", OnOffChoices(Settings.NewFirst), "new items first - or left-click the ! button");
+			Switch("it changedfirst", OnOffChoices(Settings.ChangedFirst), "...then changed items - or right-click it");
+			Switch("it toggle", OnOffChoices(Settings.ToggleClose), "a page's key closes the inventory again");
 			Switch("it highlight", OnOffChoices(Settings.Highlight), "frame new or changed items until hovered");
 			Line("it color {r,g,b,a}", Config.Color(Settings.HighlightColor));
 			Switch("it markers", OnOffChoices(Settings.Markers), "+/- before a changed stack count");
@@ -153,6 +173,49 @@ namespace InventoryTweaks
 			Output("Highlight colour: " + Config.Color(Settings.HighlightColor));
 		}
 
+		/// <summary>
+		/// Flips new-items-first. With UL present this goes through the button's own toggle so an
+		/// open window is refreshed and re-ordered at once; without it only the setting changes.
+		/// </summary>
+		private static void ToggleNewFirst(bool _changed)
+		{
+			if (UndeadLegacyInfo.Present)
+			{
+				try
+				{
+					ToggleNewFirstUl(_changed);
+					return;
+				}
+				catch (System.Exception e)
+				{
+					Log.Warning(Patches.LogPrefix + "Could not refresh the inventory window: " + e.Message);
+				}
+			}
+			if (_changed)
+			{
+				Settings.ChangedFirst = !Settings.ChangedFirst;
+			}
+			else
+			{
+				Settings.NewFirst = !Settings.NewFirst;
+			}
+			Config.Save();
+		}
+
+		/// <summary>Kept separate so this method is only JIT-compiled with UL present.</summary>
+		private static void ToggleNewFirstUl(bool _changed)
+		{
+			XUiC_ULM_BackpackWindow window = BackpackAccess.Window(LocalPlayerUI.primaryUI?.xui);
+			if (_changed)
+			{
+				NewFirst.ToggleChanged(window);
+			}
+			else
+			{
+				NewFirst.Toggle(window);
+			}
+		}
+
 		/// <summary>Re-applies the lock indicator on an open window after a console change.</summary>
 		private static void RefreshWindow()
 		{
@@ -202,7 +265,13 @@ namespace InventoryTweaks
 			Line("bag changes", UlPatches.BagChangeStatus);
 			Line("highlight draw", UlPatches.HighlightStatus);
 			Line("count markers", UlPatches.MarkerStatus);
+			Line("key toggle", UlPatches.ToggleCloseStatus);
+			Line("new-first button", UlPatches.NewFirstButtonStatus + "; " + NewFirst.ButtonStatus);
+			Line("new-first sort", UlPatches.NewFirstSortStatus);
+			Line("new-first std sort", UlPatches.NewFirstStandardSortStatus);
 			Line("sorts scrolled", Counters.SortsScrolled + " (" + Counters.AutoSorts + " automatic)");
+			Line("new-first sorts", Counters.NewFirstSorts.ToString());
+			Line("closed by page key", Counters.KeyCloses.ToString());
 			Line("bag changes seen", Counters.BagChanges.ToString());
 			Line("items flagged", Counters.ItemsFlagged + " flagged, " + Counters.ItemsSeen + " cleared by hover");
 			Line("highlighted now", NewItemTracker.HighlightedCount().ToString());
@@ -277,7 +346,7 @@ namespace InventoryTweaks
 
 		public override string getHelp()
 		{
-			return "Usage: it [on|off|scroll|containers|lock {mode}|autosort|highlight|color {r,g,b,a}"
+			return "Usage: it [on|off|scroll|containers|lock {mode}|autosort|newfirst|changedfirst|toggle|highlight|color {r,g,b,a}"
 				+ "|markers|clear|info|reset]"
 				+ "\r\n\r\nInventory quality-of-life for Undead Legacy's backpack. 'it' on its own prints "
 				+ "the settings and changes nothing. Each line names the command that changes it, so "
@@ -291,6 +360,16 @@ namespace InventoryTweaks
 				+ "to unlock. While locked, 'it autosort' (on by default) re-sorts the backpack every "
 				+ "time the inventory is opened - never while it is open, never while you are holding "
 				+ "an item, and not on a plain tab switch between crafting, character and the like."
+				+ "\r\n\r\n'it newfirst' keeps items you have never had before (the highlighted ones with no "
+				+ "+/- marker) at the front of the backpack: after every sort, on every real open, and "
+				+ "the moment it is switched on. In game, left-click the ! button next to the sort buttons. "
+				+ "'it changedfirst' (right-click the same button) adds a second tier behind them for "
+				+ "stacks you had whose count changed. Each tier keeps the order of the sort it follows; "
+				+ "when no sort ran (an open with no locked order, or switching on) it is by most recent "
+				+ "change. The rest of the bag keeps its order and locked slots are left alone."
+				+ "\r\n\r\n'it toggle' makes the key that opened a page close the inventory when pressed "
+				+ "again (B for the character page, N for skills, and so on), as the unmodded game does. "
+				+ "Undead Legacy drops that, leaving only Tab and Escape."
 				+ "\r\n\r\n'it highlight' toggles the new-item frame. An item that arrives in the backpack, "
 				+ "or a stack whose count changes, keeps a coloured frame until you hover its cell or "
 				+ "close the inventory (a tab switch does not count). 'it markers' toggles the +/- "

@@ -34,6 +34,9 @@
     <Reference Include="System" HintPath="$(GameManaged)System.dll" Private="false" />
     <Reference Include="System.Core" HintPath="$(GameManaged)System.Core.dll" Private="false" />
     <Reference Include="netstandard" HintPath="$(GameManaged)netstandard.dll" Private="false" />
+    <!-- Feature 5 edits the XUi window XML in memory before it is parsed. -->
+    <Reference Include="System.Xml" HintPath="$(GameManaged)System.Xml.dll" Private="false" />
+    <Reference Include="System.Xml.Linq" HintPath="$(GameManaged)System.Xml.Linq.dll" Private="false" />
     <Reference Include="Assembly-CSharp" HintPath="$(GameManaged)Assembly-CSharp.dll" Private="false" />
     <Reference Include="LogLibrary" HintPath="$(GameManaged)LogLibrary.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManaged)UnityEngine.CoreModule.dll" Private="false" />

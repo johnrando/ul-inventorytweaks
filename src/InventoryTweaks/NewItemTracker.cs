@@ -64,6 +64,9 @@ namespace InventoryTweaks
 
 			/// <summary>Was highlighted when the inventory closed; cleared if that close turns out to be real.</summary>
 			internal bool SeenAtClose;
+
+			/// <summary>When the slot was last flagged (unscaled time); feature 5 orders by it when no sort ran.</summary>
+			internal float ChangedAt;
 		}
 
 		private static Slot[] slots;
@@ -79,6 +82,27 @@ namespace InventoryTweaks
 		internal static bool IsHighlighted(int _slot)
 		{
 			return slots != null && _slot >= 0 && _slot < slots.Length && slots[_slot].Highlighted;
+		}
+
+		/// <summary>
+		/// A stack the player never had before and has not looked at yet: highlighted with no
+		/// marker. What feature 5 moves to the front. Count changes to a known stack do not count.
+		/// </summary>
+		internal static bool IsNew(int _slot)
+		{
+			return IsHighlighted(_slot) && !slots[_slot].HasBase && !slots[_slot].Print.IsEmpty;
+		}
+
+		/// <summary>A stack the player already had whose count changed and has not been looked at: the +/- ones.</summary>
+		internal static bool IsChanged(int _slot)
+		{
+			return IsHighlighted(_slot) && slots[_slot].HasBase && !slots[_slot].Print.IsEmpty;
+		}
+
+		/// <summary>Unscaled time the slot was last flagged; 0 for a slot that is not highlighted.</summary>
+		internal static float LastChange(int _slot)
+		{
+			return IsHighlighted(_slot) ? slots[_slot].ChangedAt : 0f;
 		}
 
 		/// <summary>
@@ -291,6 +315,7 @@ namespace InventoryTweaks
 					next[i].HasBase = next[source].HasBase;
 					next[i].Highlighted = next[source].Highlighted;
 					next[i].SeenAtClose = next[source].SeenAtClose;
+					next[i].ChangedAt = next[source].ChangedAt;
 					next[source].Base -= share;
 				}
 				else
@@ -298,6 +323,7 @@ namespace InventoryTweaks
 					next[i].Base = next[i].Print.Count;
 					next[i].HasBase = false;
 					next[i].Highlighted = true;
+					next[i].ChangedAt = Time.unscaledTime;
 					Counters.ItemsFlagged++;
 				}
 				nextResolved[i] = true;
@@ -317,6 +343,7 @@ namespace InventoryTweaks
 				{
 					next[i].Highlighted = true;
 					next[i].SeenAtClose = false;
+					next[i].ChangedAt = Time.unscaledTime;
 					Counters.ItemsFlagged++;
 				}
 				if (i >= prev.Length || next[i].Highlighted != prev[i].Highlighted
@@ -345,6 +372,7 @@ namespace InventoryTweaks
 			_target.HasBase = _prev[_from].HasBase;
 			_target.Base = _prev[_from].Base;
 			_target.SeenAtClose = _prev[_from].SeenAtClose;
+			_target.ChangedAt = _prev[_from].ChangedAt;
 
 			int accounted = _prev[_from].Print.Count;
 			while (_target.Print.Count > accounted)
@@ -360,11 +388,13 @@ namespace InventoryTweaks
 				_target.Highlighted |= _prev[other].Highlighted;
 				_target.HasBase |= _prev[other].HasBase;
 				_target.SeenAtClose &= _prev[other].SeenAtClose;
+				_target.ChangedAt = System.Math.Max(_target.ChangedAt, _prev[other].ChangedAt);
 			}
 			if (_target.Print.Count != accounted)
 			{
 				// Stock arrived or left while the inventory was closed: not something the player saw.
 				_target.SeenAtClose = false;
+				_target.ChangedAt = Time.unscaledTime;
 			}
 		}
 
