@@ -171,7 +171,7 @@ defaults above (which live in `Settings.cs`).
 
 ## Undead Legacy
 
-**Required.** Tested against **UL 2.7.30**. Every patch targets a UL class by name and reports
+**Required.** Tested against **UL 2.7.32**. Every patch targets a UL class by name and reports
 whether it applied in the startup log and in `it info`; a UL update that renames one of them
 degrades to a log line, not a crash. The mod warns, but still installs, when it sees a UL build
 outside the range it was tested on.
