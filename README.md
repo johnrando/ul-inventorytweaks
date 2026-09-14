@@ -99,7 +99,10 @@ toggle. Harmony runs every prefix even after one skips the original, so the mod 
 close from a prefix - UL's would reopen the page straight after. Instead a prefix notes whether
 the page was already showing, UL's prefix runs as usual (opening a page that is open does
 nothing), and a postfix then closes the inventory; every other press is left untouched. It
-applies to every page key (B, N, O, M and so on), not Tab, which UL handles separately.
+applies to every page key (B, N, O, M and so on), not Tab, which UL handles separately. Only a
+key press counts: an item's *Recipes* action, perk links and the like also ask the selector for
+a page that may already be showing, and those must stay no-ops, so the toggle fires only on the
+frame a page-key action was dispatched.
 
 **New-item highlight.** The bag only reports "something changed", so the mod keeps a fingerprint
 of every slot (item, quality, seed) plus the count you last acknowledged, and diffs the bag on

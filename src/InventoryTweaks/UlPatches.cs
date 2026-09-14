@@ -106,9 +106,17 @@ namespace InventoryTweaks
 			// on the same method drops it. Harmony runs every prefix even after one skips the
 			// original, so the prefix only notes whether the page was already showing and the
 			// postfix closes the inventory after UL's prefix has run (a no-op on an open page).
-			ToggleCloseStatus = Patch(_harmony, typeof(XUiC_WindowSelector), "openSelectorAndWindow",
-				typeof(KeyToggleClose), nameof(KeyToggleClose.BeforeOpen),
-				"pressing a page's key again closes the inventory", _prefix: true);
+			// The toggle must only fire for a page key, not for in-UI links (UL's "Recipes" action
+			// re-opens an already selected crafting page), so the key dispatch is recorded first.
+			ToggleCloseStatus = Patch(_harmony, typeof(NGuiAction), "OnClick",
+				typeof(KeyToggleClose), nameof(KeyToggleClose.BeforeAction),
+				"page keys are told apart from in-UI page links", _prefix: true);
+			if (!ToggleCloseStatus.StartsWith("NOT APPLIED"))
+			{
+				ToggleCloseStatus = Patch(_harmony, typeof(XUiC_WindowSelector), "openSelectorAndWindow",
+					typeof(KeyToggleClose), nameof(KeyToggleClose.BeforeOpen),
+					"pressing a page's key again closes the inventory", _prefix: true);
+			}
 			if (!ToggleCloseStatus.StartsWith("NOT APPLIED"))
 			{
 				ToggleCloseStatus = Postfix(_harmony, typeof(XUiC_WindowSelector), "openSelectorAndWindow",
